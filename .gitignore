@@ -1,0 +1,63 @@
+# General build outputs
+build/
+build-*/
+cmake-build-*/
+out/
+bin/
+lib/
+dist/
+
+# CMake-generated files
+CMakeFiles/
+CMakeCache.txt
+CMakeScripts/
+cmake_install.cmake
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+Makefile
+*.cmake
+
+# Compiled objects and libraries
+*.o
+*.obj
+*.lo
+*.la
+*.a
+*.lib
+*.so
+*.so.*
+*.dll
+*.dylib
+*.exe
+*.out
+
+# Debug / profiling artifacts
+*.dSYM/
+*.pdb
+*.idb
+*.su
+*.gcda
+*.gcno
+*.gcov
+*.prof
+*.core
+
+# Logs and temp files
+*.log
+*.tmp
+*.temp
+*~
+
+# Editor / IDE settings
+.idea/
+.vscode/
+*.code-workspace
+.DS_Store
+Thumbs.db
+*.iml
+*.orig
+*.swp
+*.swo
+tags
+*.tags
