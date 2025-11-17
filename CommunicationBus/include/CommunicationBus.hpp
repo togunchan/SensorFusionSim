@@ -44,7 +44,7 @@ namespace sensorfusion::bus
 
     private:
         // Internal helper to stop worker, single-threaded deterministic fan-out
-        void workerLoop();
+        void workerLoop(std::stop_token st);
 
         BusConfig m_config{};
 

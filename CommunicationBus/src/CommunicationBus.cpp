@@ -17,29 +17,23 @@ namespace sensorfusion::bus
             return;
         }
 
-        m_worker = std::jthread([this](std::stop_token)
-                                { workerLoop(); });
+        m_worker = std::jthread([this](std::stop_token st)
+                                { workerLoop(st); });
     }
 
     void CommunicationBus::stop()
     {
-        bool expected = true;
-        if (!m_running.compare_exchange_strong(expected, false))
-        {
-            // already stopped
+        if (!m_worker.joinable())
             return;
-        }
+
+        m_worker.request_stop();
 
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             m_hasWork = true; // wake up worker to exit
         }
         m_cv.notify_one();
-
-        if (m_worker.joinable())
-        {
-            m_worker.join();
-        }
+        m_worker.join();
     }
 
     void CommunicationBus::publish(const sensorfusion::SensorFrame &frame)
@@ -141,18 +135,16 @@ namespace sensorfusion::bus
         m_systemEventHandlers.emplace_back(std::move(handler));
     }
 
-    void CommunicationBus::workerLoop()
+    void CommunicationBus::workerLoop(std::stop_token st)
     {
-        while (m_running.load())
+        while (!st.stop_requested())
         {
             std::unique_lock<std::mutex> lock(m_mutex);
-            m_cv.wait(lock, [this]()
-                      { return m_hasWork || !m_running.load(); });
+            m_cv.wait(lock, [&]
+                      { return m_hasWork || st.stop_requested(); });
 
-            if (!m_running.load())
-            {
+            if (st.stop_requested())
                 break;
-            }
 
             std::queue<sensorfusion::SensorFrame> sensorFrames;
             std::queue<sensorfusion::TrackerState> trackerStates;
@@ -219,6 +211,5 @@ namespace sensorfusion::bus
                 systemEvents.pop();
             }
 
-        } // while (m_running.load())
-    }
-} // namespace sensorfusion::bus
+        } // while (!st.stop_requested())
+    } // namespace sensorfusion::bus
