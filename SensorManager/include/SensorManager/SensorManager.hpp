@@ -38,6 +38,7 @@ namespace sensorfusion::sensors
         std::atomic<bool> m_running{false};
 
         std::unordered_map<std::string, SensorConfig> m_sensors;
+        std::unordered_map<std::string, std::chrono::steady_clock::time_point> m_nextUpdate;
     };
 
 } // namespace sensorfusion::sensors

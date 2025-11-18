@@ -43,7 +43,24 @@ namespace sensorfusion::sensors
 
         while (!st.stop_requested())
         {
-            std::this_thread::sleep_for(10ms);
+            auto now = m_clock.now();
+
+            for (auto &[id, config] : m_sensors)
+            {
+                auto &nextTime = m_nextUpdate[id];
+                if (now >= nextTime)
+                {
+                    sensorfusion::SensorFrame frame{};
+                    frame.timestamp = now;
+                    m_bus.publish(frame);
+
+                    const auto interval = std::chrono::duration_cast<time::VirtualClock::Duration>(
+                        std::chrono::duration<double>(1.0 / config.updateRateHz));
+                    nextTime = now + interval;
+                }
+            }
+            std::this_thread::sleep_for(1ms);
+            m_clock.advance(1ms);
         }
     }
 } // namespace sensorfusion::sensors
