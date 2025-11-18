@@ -42,7 +42,27 @@ target_link_libraries(CommunicationBus
         Eigen3::Eigen
 )
 
+# -------------------------------------------------------
+# SensorManager module
+# -------------------------------------------------------
+add_library(SensorManager
+    SensorManager/src/SensorManager.cpp
+)
+
+target_include_directories(SensorManager
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/SensorManager/include
+)
+
+target_link_libraries(SensorManager
+    PUBLIC
+        VirtualTime
+        CommunicationBus
+)
+
+# -------------------------------------------------------
 target_compile_features(CommunicationBus PUBLIC cxx_std_20)
+# -------------------------------------------------------
 
 # -------------------------------------------------------
 # Unit Tests
