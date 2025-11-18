@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unordered_map>
+#include <string>
+#include <vector>
 #include <thread>
 #include <atomic>
 #include <CommunicationBus/CommunicationBus.hpp>
@@ -23,6 +26,9 @@ namespace sensorfusion::sensors
         void start();
         void stop();
 
+        void addSensor(const SensorConfig &config);
+        void removeSensor(const std::string &id);
+
     private:
         void workerLoop(std::stop_token st);
 
@@ -30,6 +36,8 @@ namespace sensorfusion::sensors
         bus::CommunicationBus &m_bus;
         std::jthread m_worker;
         std::atomic<bool> m_running{false};
+
+        std::unordered_map<std::string, SensorConfig> m_sensors;
     };
 
 } // namespace sensorfusion::sensors

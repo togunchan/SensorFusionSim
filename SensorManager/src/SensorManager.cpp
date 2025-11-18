@@ -27,6 +27,16 @@ namespace sensorfusion::sensors
         }
     }
 
+    void SensorManager::addSensor(const SensorConfig &config)
+    {
+        m_sensors[config.id] = config;
+    }
+
+    void SensorManager::removeSensor(const std::string &id)
+    {
+        m_sensors.erase(id);
+    }
+
     void SensorManager::workerLoop(std::stop_token st)
     {
         using namespace std::chrono_literals;
