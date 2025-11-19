@@ -28,6 +28,7 @@ namespace sensorfusion::sensors
 
         void addSensor(const SensorConfig &config);
         void removeSensor(const std::string &id);
+        sensorfusion::SensorFrame generateFrame(const SensorConfig &config);
 
     private:
         void workerLoop(std::stop_token st);
