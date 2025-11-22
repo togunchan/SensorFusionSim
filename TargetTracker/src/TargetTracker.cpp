@@ -25,6 +25,11 @@ namespace sensorfusion::tracking
 
     void TargetTracker::stop()
     {
+        if (!m_running.exchange(false))
+            return;
+
+        if (m_worker.joinable())
+            m_worker.request_stop();
     }
 
     TrackerState TargetTracker::latestState() const
