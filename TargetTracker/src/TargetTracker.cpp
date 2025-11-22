@@ -34,6 +34,8 @@ namespace sensorfusion::tracking
 
     TrackerState TargetTracker::latestState() const
     {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        return m_lastState;
     }
 
     void TargetTracker::handleSensorFrame(const SensorFrame &frame)
