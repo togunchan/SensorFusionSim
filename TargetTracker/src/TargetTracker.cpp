@@ -49,6 +49,7 @@ namespace sensorfusion::tracking
 
         auto prevTime = m_lastState.timestamp;
         auto currTime = frame.timestamp;
+        auto prevVel = m_lastState.velocity;
 
         // dt stands for delta time
         float dt = std::chrono::duration<float>(currTime - prevTime).count();
@@ -56,8 +57,8 @@ namespace sensorfusion::tracking
             dt = 0.0f;
 
         m_lastState.timestamp = currTime;
-        m_lastState.position = m_lastState.velocity * dt;
-        m_lastState.velocity = frame.imu_accel * dt;
+        m_lastState.position += prevVel * dt;
+        m_lastState.velocity = prevVel + frame.imu_accel * dt;
         m_lastState.confidence = std::min(1.0f, m_lastState.confidence + 0.1f);
 
         m_lastUpdate = currTime;
