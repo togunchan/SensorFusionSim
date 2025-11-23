@@ -8,6 +8,11 @@ namespace sensorfusion::tracking
                                  bus::CommunicationBus &bus)
         : m_config(config), m_clock(clock), m_bus(bus)
     {
+        m_lastState.timestamp = clock.now();
+        m_lastState.position = Eigen::Vector3f::Zero();
+        m_lastState.velocity = Eigen::Vector3f::Zero();
+        m_lastState.confidence = config.initialConfidence;
+        m_lastUpdate = clock.now();
     }
 
     void TargetTracker::start()
@@ -42,10 +47,20 @@ namespace sensorfusion::tracking
     {
         std::lock_guard<std::mutex> lock(m_stateMutex);
 
-        m_lastState.timestamp = frame.timestamp;
+        auto prevTime = m_lastState.timestamp;
+        auto currTime = frame.timestamp;
+
+        // dt stands for delta time
+        float dt = std::chrono::duration<float>(currTime - prevTime).count();
+        if (dt < 0.0f)
+            dt = 0.0f;
+
+        m_lastState.timestamp = currTime;
+        m_lastState.position = m_lastState.velocity * dt;
+        m_lastState.velocity = frame.imu_accel * dt;
         m_lastState.confidence = std::min(1.0f, m_lastState.confidence + 0.1f);
 
-        m_lastUpdate = frame.timestamp;
+        m_lastUpdate = currTime;
     }
 
     void TargetTracker::workerLoop(std::stop_token st)
