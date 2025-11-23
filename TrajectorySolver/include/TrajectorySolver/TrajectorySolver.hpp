@@ -28,6 +28,7 @@ namespace sensorfusion::solver
     private:
         void handleTrackerState(const TrackerState &state);
         void workerLoop(std::stop_token st);
+        KinematicSolution TrajectorySolver::computeSolution(const TrackerState &state, std::chrono::steady_clock::time_point simTime);
 
         SolverConfig m_config;
         time::VirtualClock &m_clock;
