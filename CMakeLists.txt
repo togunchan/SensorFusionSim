@@ -61,6 +61,42 @@ target_link_libraries(SensorManager
 )
 
 # -------------------------------------------------------
+# TargetTracker module
+# -------------------------------------------------------
+add_library(TargetTracker
+    TargetTracker/src/TargetTracker.cpp
+)
+
+target_include_directories(TargetTracker
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/TargetTracker/include
+)
+
+target_link_libraries(TargetTracker
+    PUBLIC
+        VirtualTime
+        CommunicationBus
+)
+
+# -------------------------------------------------------
+# TrajectorySolver module
+# -------------------------------------------------------
+add_library(TrajectorySolver
+    TrajectorySolver/src/TrajectorySolver.cpp
+)
+
+target_include_directories(TrajectorySolver
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/TrajectorySolver/include
+)
+
+target_link_libraries(TrajectorySolver
+    PUBLIC
+        VirtualTime
+        CommunicationBus
+)
+
+# -------------------------------------------------------
 target_compile_features(CommunicationBus PUBLIC cxx_std_20)
 # -------------------------------------------------------
 
