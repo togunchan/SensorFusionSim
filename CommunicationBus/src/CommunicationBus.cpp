@@ -1,4 +1,4 @@
-#include <CommunicationBus.hpp>
+#include <CommunicationBus/CommunicationBus.hpp>
 
 namespace sensorfusion::bus
 {
@@ -212,4 +212,5 @@ namespace sensorfusion::bus
             }
 
         } // while (!st.stop_requested())
-    } // namespace sensorfusion::bus
+    } // CommunicationBus::workerLoop
+} // namespace sensorfusion::bus
