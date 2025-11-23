@@ -40,10 +40,38 @@ namespace sensorfusion::tracking
 
     void TargetTracker::handleSensorFrame(const SensorFrame &frame)
     {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+
+        m_lastState.timestamp = frame.timestamp;
+        m_lastState.confidence = std::min(1.0f, m_lastState.confidence + 0.1f);
+
+        m_lastUpdate = frame.timestamp;
     }
 
     void TargetTracker::workerLoop(std::stop_token st)
     {
+        using namespace std::chrono_literals;
+
+        while (!st.stop_requested())
+        {
+            auto now = m_clock.now();
+            {
+                std::lock_guard<std::mutex> lock(m_stateMutex);
+
+                auto delta = now - m_lastUpdate;
+
+                // // Decrease confidence if updates have been missing for an extended period
+                if (delta > std::chrono::milliseconds(static_cast<int>(m_config.maxUpdateInterval)))
+                {
+                    m_lastState.confidence = std::max(0.0f, m_lastState.confidence - 0.05f);
+                }
+
+                m_bus.publish(m_lastState);
+            }
+
+            std::this_thread::sleep_for(10ms);
+            m_clock.advance(10ms);
+        }
     }
 
 } // namespace sensorfusion::tracking
