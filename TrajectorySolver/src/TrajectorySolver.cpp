@@ -42,7 +42,10 @@ namespace sensorfusion::solver
             return;
 
         if (m_worker.joinable())
+        {
             m_worker.request_stop();
+            m_worker.join();
+        }
     }
 
     KinematicSolution TrajectorySolver::latestSolution() const
