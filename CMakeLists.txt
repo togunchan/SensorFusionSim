@@ -115,6 +115,23 @@ target_link_libraries(EngagementController
 )
 
 # -------------------------------------------------------
+# DataLogger module
+# -------------------------------------------------------
+add_library(DataLogger
+    DataLogger/src/DataLogger.cpp
+)
+
+target_include_directories(DataLogger
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/DataLogger/include
+)
+
+target_link_libraries(DataLogger
+    PUBLIC
+        CommunicationBus
+)
+
+# -------------------------------------------------------
 target_compile_features(CommunicationBus PUBLIC cxx_std_20)
 # -------------------------------------------------------
 
