@@ -97,6 +97,24 @@ target_link_libraries(TrajectorySolver
 )
 
 # -------------------------------------------------------
+# EngagementController module
+# -------------------------------------------------------
+add_library(EngagementController
+    EngagementController/src/EngagementController.cpp
+)
+
+target_include_directories(EngagementController
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/EngagementController/include
+)
+
+target_link_libraries(EngagementController
+    PUBLIC
+        VirtualTime
+        CommunicationBus
+)
+
+# -------------------------------------------------------
 target_compile_features(CommunicationBus PUBLIC cxx_std_20)
 # -------------------------------------------------------
 
