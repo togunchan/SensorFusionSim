@@ -130,8 +130,25 @@ target_link_libraries(DataLogger
     PUBLIC
         CommunicationBus
 )
+# -------------------------------------------------------
+# Visualization module
+# -------------------------------------------------------
+add_library(Visualization
+    Visualization/src/LivePlotClient.cpp
+)
+
+target_include_directories(Visualization
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/Visualization/include
+)
+
+target_link_libraries(Visualization
+    PUBLIC
+        pthread
+)
 
 # -------------------------------------------------------
+target_compile_features(Visualization PUBLIC cxx_std_20)
 target_compile_features(CommunicationBus PUBLIC cxx_std_20)
 # -------------------------------------------------------
 
