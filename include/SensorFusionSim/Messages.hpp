@@ -66,3 +66,18 @@ namespace sensorfusion
         std::string description;
     };
 } // namespace sensorfusion
+
+namespace sensorfusion::control
+{
+    enum class EngagementState
+    {
+        Idle,
+        Acquiring,
+        Tracking,
+        Aligning,
+        Ready,
+        Executing,
+        Completed,
+        Safe
+    };
+} // namespace sensorfusion::control

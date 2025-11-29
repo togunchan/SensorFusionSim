@@ -24,7 +24,7 @@ namespace sensorfusion::bus
         using TrackerStateHandler = std::function<void(const sensorfusion::TrackerState &)>;
         using KinematicSolutionHandler = std::function<void(const sensorfusion::KinematicSolution &)>;
         using SystemEventHandler = std::function<void(const sensorfusion::SystemEvent &)>;
-
+        using EngagementStateHandler = std::function<void(const sensorfusion::control::EngagementState &)>;
         explicit CommunicationBus(const BusConfig &config = {});
 
         void start();
@@ -35,12 +35,14 @@ namespace sensorfusion::bus
         void publish(const sensorfusion::TrackerState &state);
         void publish(const sensorfusion::KinematicSolution &solution);
         void publish(const sensorfusion::SystemEvent &event);
+        void publish(const sensorfusion::control::EngagementState &state);
 
         // Subscription API - call before start()
         void subscribe(SensorFrameHandler handler);
         void subscribe(TrackerStateHandler handler);
         void subscribe(KinematicSolutionHandler handler);
         void subscribe(SystemEventHandler handler);
+        void subscribe(EngagementStateHandler handler);
 
     private:
         // Internal helper to stop worker, single-threaded deterministic fan-out
@@ -53,12 +55,14 @@ namespace sensorfusion::bus
         std::queue<sensorfusion::TrackerState> m_trackerStateQueue;
         std::queue<sensorfusion::KinematicSolution> m_kinematicSolutionQueue;
         std::queue<sensorfusion::SystemEvent> m_systemEventQueue;
+        std::queue<sensorfusion::control::EngagementState> m_engagementStateQueue;
 
         // Subscribers per message type
         std::vector<SensorFrameHandler> m_sensorFrameHandlers;
         std::vector<TrackerStateHandler> m_trackerStateHandlers;
         std::vector<KinematicSolutionHandler> m_kinematicSolutionHandlers;
         std::vector<SystemEventHandler> m_systemEventHandlers;
+        std::vector<EngagementStateHandler> m_engagementStateHandlers;
 
         // Synchronization
         std::mutex m_mutex;

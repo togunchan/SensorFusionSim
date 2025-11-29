@@ -114,6 +114,26 @@ namespace sensorfusion::bus
         m_cv.notify_one();
     }
 
+    void CommunicationBus::publish(const sensorfusion::control::EngagementState &state)
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+
+            if (m_config.dropOnOverflow &&
+                m_engagementStateQueue.size() >= m_config.maxQueueSizePerType)
+            {
+                // see comment above
+            }
+            else
+            {
+                m_engagementStateQueue.push(state);
+            }
+
+            m_hasWork = true;
+        }
+        m_cv.notify_one();
+    }
+
     void CommunicationBus::subscribe(SensorFrameHandler handler)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -134,6 +154,11 @@ namespace sensorfusion::bus
         std::lock_guard<std::mutex> lock(m_mutex);
         m_systemEventHandlers.emplace_back(std::move(handler));
     }
+    void CommunicationBus::subscribe(EngagementStateHandler handler)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_engagementStateHandlers.emplace_back(std::move(handler));
+    }
 
     void CommunicationBus::workerLoop(std::stop_token st)
     {
@@ -150,11 +175,13 @@ namespace sensorfusion::bus
             std::queue<sensorfusion::TrackerState> trackerStates;
             std::queue<sensorfusion::KinematicSolution> kinematicSolutions;
             std::queue<sensorfusion::SystemEvent> systemEvents;
+            std::queue<sensorfusion::control::EngagementState> engagementStates;
 
             sensorFrames.swap(m_sensorFrameQueue);
             trackerStates.swap(m_trackerStateQueue);
             kinematicSolutions.swap(m_kinematicSolutionQueue);
             systemEvents.swap(m_systemEventQueue);
+            engagementStates.swap(m_engagementStateQueue);
 
             m_hasWork = false;
             lock.unlock();
@@ -209,6 +236,19 @@ namespace sensorfusion::bus
                     }
                 }
                 systemEvents.pop();
+            }
+
+            while (!engagementStates.empty())
+            {
+                const auto &msg = engagementStates.front();
+                for (auto &h : m_engagementStateHandlers)
+                {
+                    if (h)
+                    {
+                        h(msg);
+                    }
+                }
+                engagementStates.pop();
             }
 
         } // while (!st.stop_requested())

@@ -135,6 +135,7 @@ target_link_libraries(DataLogger
 # -------------------------------------------------------
 add_library(Visualization
     Visualization/src/LivePlotClient.cpp
+    Visualization/src/JsonSerializer.cpp 
 )
 
 target_include_directories(Visualization
@@ -145,6 +146,8 @@ target_include_directories(Visualization
 target_link_libraries(Visualization
     PUBLIC
         pthread
+        CommunicationBus
+        EngagementController
 )
 
 # -------------------------------------------------------
