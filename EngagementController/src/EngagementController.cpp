@@ -53,6 +53,7 @@ namespace sensorfusion::control
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_state = newState;
+        m_bus.publish(newState);
     }
 
     void EngagementController::workerLoop(std::stop_token st)

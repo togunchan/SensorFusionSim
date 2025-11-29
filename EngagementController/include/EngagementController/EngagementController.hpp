@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VirtualTime/VirtualClock.hpp>
+#include <SensorFusionSim/Messages.hpp>
 #include <CommunicationBus/CommunicationBus.hpp>
 #include <atomic>
 #include <mutex>
@@ -8,18 +9,6 @@
 
 namespace sensorfusion::control
 {
-    enum class EngagementState
-    {
-        Idle,
-        Acquiring,
-        Tracking,
-        Aligning,
-        Ready,
-        Executing,
-        Completed,
-        Safe
-    };
-
     struct ControllerConfig
     {
         float minStabilityToAlign = 0.8f;

@@ -130,8 +130,28 @@ target_link_libraries(DataLogger
     PUBLIC
         CommunicationBus
 )
+# -------------------------------------------------------
+# Visualization module
+# -------------------------------------------------------
+add_library(Visualization
+    Visualization/src/LivePlotClient.cpp
+    Visualization/src/JsonSerializer.cpp 
+)
+
+target_include_directories(Visualization
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/Visualization/include
+)
+
+target_link_libraries(Visualization
+    PUBLIC
+        pthread
+        CommunicationBus
+        EngagementController
+)
 
 # -------------------------------------------------------
+target_compile_features(Visualization PUBLIC cxx_std_20)
 target_compile_features(CommunicationBus PUBLIC cxx_std_20)
 # -------------------------------------------------------
 
@@ -141,8 +161,32 @@ target_compile_features(CommunicationBus PUBLIC cxx_std_20)
 if(BUILD_TESTING)
     enable_testing()
 
-    add_executable(TestVirtualClock tests/unit/Test_VirtualClock.cpp)
-    target_link_libraries(TestVirtualClock PRIVATE VirtualTime)
+    #
+    # Test: VirtualClock
+    #
+    add_executable(TestVirtualClock
+        tests/unit/Test_VirtualClock.cpp
+    )
+    target_link_libraries(TestVirtualClock
+        PRIVATE
+            VirtualTime
+    )
     target_compile_features(TestVirtualClock PRIVATE cxx_std_20)
     add_test(NAME VirtualClockTests COMMAND TestVirtualClock)
+
+
+
+    #
+    # Test: LivePlotClient
+    #
+    add_executable(TestLivePlotClient
+        tests/unit/Test_LivePlotClient.cpp
+    )
+    target_link_libraries(TestLivePlotClient
+        PRIVATE
+            Visualization
+    )
+    target_compile_features(TestLivePlotClient PRIVATE cxx_std_20)
+    add_test(NAME LivePlotClientTests COMMAND TestLivePlotClient)
+
 endif()
