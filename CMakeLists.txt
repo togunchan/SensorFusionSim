@@ -157,6 +157,32 @@ target_compile_features(CommunicationBus PUBLIC cxx_std_20)
 # -------------------------------------------------------
 
 # -------------------------------------------------------
+# Main executable
+# -------------------------------------------------------
+add_executable(SensorFusionSim
+    src/main.cpp
+)
+
+target_include_directories(SensorFusionSim
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(SensorFusionSim
+    PRIVATE
+        VirtualTime
+        CommunicationBus
+        SensorManager
+        TargetTracker
+        TrajectorySolver
+        EngagementController
+        DataLogger
+        Visualization
+)
+
+target_compile_features(SensorFusionSim PRIVATE cxx_std_20)
+
+# -------------------------------------------------------
 # Unit Tests
 # -------------------------------------------------------
 if(BUILD_TESTING)

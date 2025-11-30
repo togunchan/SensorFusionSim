@@ -52,6 +52,7 @@ Makefile
 # Editor / IDE settings
 .idea/
 .vscode/
+.venv/
 *.code-workspace
 .DS_Store
 Thumbs.db
