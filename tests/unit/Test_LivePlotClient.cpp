@@ -1,26 +1,37 @@
+#define private public
 #include <Visualization/LivePlotClient.hpp>
-#include <thread>
-#include <chrono>
-#include <iostream>
+#undef private
 
-using namespace sensorfusion::viz;
+#include <catch2/catch_test_macros.hpp>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <cerrno>
 
-int main()
+TEST_CASE("LivePlotClient writes newline-terminated payloads and closes sockets", "[LivePlotClient]")
 {
-    LivePlotClient client("127.0.0.1", 5555);
-    client.start();
+    using namespace sensorfusion::viz;
 
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    int sockets[2]{-1, -1};
+    REQUIRE(socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == 0);
 
-    std::cout << "[Test] Sending test JSON..." << std::endl;
+    LivePlotClient client("127.0.0.1", 0);
+    client.m_socketFd = sockets[0]; // Inject test socket
+    client.m_running = true;        // Allow stop() to perform cleanup
 
-    for (int i = 0; i < 5; ++i)
-    {
-        std::string json =
-            "{ \"kind\": \"test\", \"value\": " + std::to_string(i) + " }";
+    const std::string payload = R"({"hello":"world"})";
+    client.send(payload);
 
-        client.send(json);
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }
-    client.stop();
+    char buffer[128]{};
+    const auto bytesRead = recv(sockets[1], buffer, sizeof(buffer), 0);
+    REQUIRE(bytesRead > 0);
+    std::string received(buffer, buffer + bytesRead);
+    REQUIRE(received == payload + "\n"); // newline appended by send()
+
+    client.stop(); // should close sockets[0]
+
+    // Once closed, writes to the old descriptor should fail.
+    errno = 0;
+    REQUIRE(::send(sockets[0], "x", 1, 0) == -1);
+
+    close(sockets[1]);
 }

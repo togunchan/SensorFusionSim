@@ -43,6 +43,8 @@ namespace sensorfusion::solver
         KinematicSolution m_lastSolution{};
 
         std::chrono::steady_clock::time_point m_lastUpdate{};
+
+        bool m_hasTrackerState{false};
     };
 
 } // namespace sensorfusion::solver

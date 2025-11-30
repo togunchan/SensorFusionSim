@@ -59,6 +59,7 @@ namespace sensorfusion::solver
         std::lock_guard<std::mutex> lock(m_mutex);
         m_lastTrackerState = state;
         m_lastUpdate = state.timestamp;
+        m_hasTrackerState = true;
     }
 
     KinematicSolution TrajectorySolver::computeSolution(const TrackerState &state, std::chrono::steady_clock::time_point simTime)
@@ -103,15 +104,23 @@ namespace sensorfusion::solver
         {
             auto simTime = m_clock.now();
 
-            KinematicSolution sol;
-
+            TrackerState stateCopy;
+            bool hasTracker = false;
             {
                 std::lock_guard<std::mutex> lock(m_mutex);
-                sol = computeSolution(m_lastTrackerState, simTime);
-                m_lastSolution = sol;
+                hasTracker = m_hasTrackerState;
+                stateCopy = m_lastTrackerState;
             }
 
-            m_bus.publish(sol);
+            if (hasTracker)
+            {
+                KinematicSolution sol;
+                {
+                    sol = computeSolution(m_lastTrackerState, simTime);
+                    m_lastSolution = sol;
+                }
+                m_bus.publish(sol);
+            }
 
             std::this_thread::sleep_for(tickInterval);
             m_clock.advance(tickInterval);

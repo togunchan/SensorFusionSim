@@ -1,31 +1,36 @@
-#include <cassert>
-#include <chrono>
+#include <catch2/catch_test_macros.hpp>
 #include <VirtualTime/VirtualClock.hpp>
 
-using namespace sensorfusion::time;
+using sensorfusion::time::VirtualClock;
+using namespace std::chrono_literals;
 
-int main()
+TEST_CASE("VirtualClock maintains a deterministic virtual timeline", "[VirtualClock]")
 {
     VirtualClock clock;
 
-    // Test 1: now() should not regress or be uninitialized
-    auto t1 = clock.now();
-    auto t2 = clock.now();
-    assert(t2 == t1);
+    SECTION("starts at the epoch and does not regress")
+    {
+        auto t1 = clock.now();
+        auto t2 = clock.now();
+        REQUIRE(t1 == VirtualClock::TimePoint{});
+        REQUIRE(t2 == t1);
+    }
 
-    // Test 2: advance()
-    auto before = clock.now();
-    clock.advance(std::chrono::milliseconds(50));
-    auto after = clock.now();
-    assert(after - before == std::chrono::milliseconds(50));
+    SECTION("advances forward while ignoring negative deltas")
+    {
+        clock.advance(10ms);
+        auto afterPositive = clock.now();
+        REQUIRE(afterPositive - VirtualClock::TimePoint{} == 10ms);
 
-    // Test 3: reset()
-    clock.advance(std::chrono::milliseconds(10));
-    clock.reset();
-    auto r1 = clock.now();
-    clock.advance(std::chrono::milliseconds(1));
-    auto r2 = clock.now();
-    assert(r2 > r1);
+        clock.advance(-5ms);
+        REQUIRE(clock.now() == afterPositive);
+    }
 
-    return 0;
+    SECTION("reset returns the clock to the initial epoch")
+    {
+        clock.advance(7ms);
+        REQUIRE(clock.now() > VirtualClock::TimePoint{});
+        clock.reset();
+        REQUIRE(clock.now() == VirtualClock::TimePoint{});
+    }
 }

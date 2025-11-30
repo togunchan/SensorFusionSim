@@ -136,6 +136,7 @@ target_link_libraries(DataLogger
 add_library(Visualization
     Visualization/src/LivePlotClient.cpp
     Visualization/src/JsonSerializer.cpp 
+    Visualization/src/VisualizationPublisher.cpp
 )
 
 target_include_directories(Visualization
@@ -160,33 +161,40 @@ target_compile_features(CommunicationBus PUBLIC cxx_std_20)
 # -------------------------------------------------------
 if(BUILD_TESTING)
     enable_testing()
+    # Prefer vendored Catch2 if present; otherwise rely on an installed package.
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/Catch2/CMakeLists.txt")
+        set(CATCH_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+        add_subdirectory(third_party/Catch2)
+    else()
+        find_package(Catch2 3 REQUIRED)
+    endif()
 
-    #
-    # Test: VirtualClock
-    #
-    add_executable(TestVirtualClock
+    set(TEST_SOURCES
         tests/unit/Test_VirtualClock.cpp
-    )
-    target_link_libraries(TestVirtualClock
-        PRIVATE
-            VirtualTime
-    )
-    target_compile_features(TestVirtualClock PRIVATE cxx_std_20)
-    add_test(NAME VirtualClockTests COMMAND TestVirtualClock)
-
-
-
-    #
-    # Test: LivePlotClient
-    #
-    add_executable(TestLivePlotClient
+        tests/unit/Test_CommunicationBus.cpp
+        tests/unit/Test_SensorManager.cpp
+        tests/unit/Test_TargetTracker.cpp
+        tests/unit/Test_TrajectorySolver.cpp
+        tests/unit/Test_EngagementController.cpp
+        tests/unit/Test_DataLogger.cpp
+        tests/unit/Test_JsonSerializer.cpp
         tests/unit/Test_LivePlotClient.cpp
+        tests/unit/Test_VisualizationPublisher.cpp
     )
-    target_link_libraries(TestLivePlotClient
+
+    add_executable(SensorFusionSimTests ${TEST_SOURCES})
+    target_link_libraries(SensorFusionSimTests
         PRIVATE
+            Catch2::Catch2WithMain
+            VirtualTime
+            CommunicationBus
+            SensorManager
+            TargetTracker
+            TrajectorySolver
+            EngagementController
+            DataLogger
             Visualization
     )
-    target_compile_features(TestLivePlotClient PRIVATE cxx_std_20)
-    add_test(NAME LivePlotClientTests COMMAND TestLivePlotClient)
-
+    target_compile_features(SensorFusionSimTests PRIVATE cxx_std_20)
+    add_test(NAME SensorFusionSimTests COMMAND SensorFusionSimTests)
 endif()
