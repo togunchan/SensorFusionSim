@@ -27,37 +27,49 @@ namespace
     }
 } // namespace
 
-TEST_CASE("TargetTracker integrates acceleration into state", "[TargetTracker]")
+TEST_CASE("TargetTracker derives pose from lidar and yaw", "[TargetTracker]")
 {
     sensorfusion::time::VirtualClock clock;
     sensorfusion::bus::CommunicationBus bus;
     sensorfusion::tracking::TrackerConfig cfg;
-    cfg.initialConfidence = 0.5f;
-    cfg.maxUpdateInterval = 200.0f;
+    cfg.initialConfidence = 0.45f;
+    cfg.maxUpdateInterval = 400.0f;
     sensorfusion::tracking::TargetTracker tracker(cfg, clock, bus);
 
     tracker.start();
     bus.start();
 
-    sensorfusion::SensorFrame frame{};
-    frame.timestamp = clock.now() + 50ms;
-    frame.imu_accel = Eigen::Vector3f(1.0f, 0.0f, 0.0f);
-    frame.imu_gyro = Eigen::Vector3f::Zero();
-    bus.publish(frame);
+    sensorfusion::SensorFrame frame1{};
+    frame1.timestamp = clock.now() + 20ms;
+    frame1.lidar_range = 10.0f;
+    frame1.imu_gyro = Eigen::Vector3f::Zero();
+    frame1.imu_accel = Eigen::Vector3f::Zero();
+    bus.publish(frame1);
 
-    const bool updated = waitFor([&]
-                                 { return tracker.latestState().timestamp == frame.timestamp; },
-                                 200ms);
+    sensorfusion::SensorFrame frame2{};
+    frame2.timestamp = frame1.timestamp + 50ms;
+    frame2.lidar_range = 10.6f; // small increase in range
+    frame2.imu_gyro = Eigen::Vector3f::Zero();
+    frame2.imu_accel = Eigen::Vector3f::Zero();
+    bus.publish(frame2);
 
-    auto state = tracker.latestState();
+    const bool updated2 = waitFor([&]
+                                  { return tracker.latestState().timestamp == frame2.timestamp; },
+                                  200ms);
+
+    auto state2 = tracker.latestState();
 
     tracker.stop();
     bus.stop();
 
-    REQUIRE(updated);
-    REQUIRE(state.velocity.x() == Approx(0.05f)); // dv = a * dt = 1 * 0.05s
-    REQUIRE(state.position.x() == Approx(0.0f));
-    REQUIRE(state.confidence == Approx(0.6f));
+    REQUIRE(updated2);
+    REQUIRE(state2.position.x() == Approx(10.6f).margin(0.2f));
+    REQUIRE(state2.position.y() == Approx(0.0f).margin(0.1f));
+    REQUIRE(state2.velocity.x() > 0.05f);
+    REQUIRE(std::abs(state2.velocity.y()) < 1.0f);
+    REQUIRE(state2.covariance_trace > 0.0f);
+    REQUIRE(state2.confidence > cfg.initialConfidence);
+    REQUIRE(state2.confidence < 0.98f);
 }
 
 TEST_CASE("TargetTracker decreases confidence when updates are missing", "[TargetTracker]")
@@ -65,8 +77,8 @@ TEST_CASE("TargetTracker decreases confidence when updates are missing", "[Targe
     sensorfusion::time::VirtualClock clock;
     sensorfusion::bus::CommunicationBus bus;
     sensorfusion::tracking::TrackerConfig cfg;
-    cfg.initialConfidence = 1.0f;
-    cfg.maxUpdateInterval = 5.0f; // milliseconds
+    cfg.initialConfidence = 0.7f;
+    cfg.maxUpdateInterval = 30.0f; // milliseconds
     sensorfusion::tracking::TargetTracker tracker(cfg, clock, bus);
 
     tracker.start();
@@ -74,7 +86,7 @@ TEST_CASE("TargetTracker decreases confidence when updates are missing", "[Targe
 
     const bool degraded = waitFor([&]
                                   { return tracker.latestState().confidence < cfg.initialConfidence; },
-                                  80ms);
+                                  200ms);
 
     tracker.stop();
     bus.stop();

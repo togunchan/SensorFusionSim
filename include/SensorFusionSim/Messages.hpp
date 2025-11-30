@@ -34,6 +34,7 @@ namespace sensorfusion
         Eigen::Vector3f position{Eigen::Vector3f::Zero()};
         Eigen::Vector3f velocity{Eigen::Vector3f::Zero()};
         float confidence{0.0f};
+        float covariance_trace{0.0f}; // aggregate uncertainty for downstream modules
     };
 
     // Summarizes solver output: orientation offsets and stability.

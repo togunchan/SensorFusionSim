@@ -62,6 +62,7 @@ TEST_CASE("TrajectorySolver computes orientation and stability from tracker stat
     state.position = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
     state.velocity = Eigen::Vector3f(0.5f, 0.0f, 0.0f);
     state.confidence = 0.8f;
+    state.covariance_trace = 2.0f;
 
     bus.publish(state);
 
@@ -78,7 +79,9 @@ TEST_CASE("TrajectorySolver computes orientation and stability from tracker stat
     const float horiz = std::sqrt(1.0f * 1.0f + 1.0f * 1.0f);
     REQUIRE(received.elevation_offset == Approx(std::atan2(1.0f, horiz)));
 
-    const float expectedStability = (1.0f - 0.5f * 0.1f) * state.confidence; // (1 - speed*0.1) * confidence
+    const float speedScore = 1.0f / (1.0f + 0.2f * state.velocity.norm());
+    const float covScore = 1.0f / (1.0f + 0.05f * state.covariance_trace);
+    const float expectedStability = 0.5f * state.confidence + 0.3f * covScore + 0.2f * speedScore;
     REQUIRE(received.stability_score == Approx(expectedStability));
     REQUIRE(received.is_stable);
 }
@@ -113,8 +116,9 @@ TEST_CASE("TrajectorySolver reports unstable solutions below threshold", "[Traje
     sensorfusion::TrackerState noisy{};
     noisy.timestamp = clock.now();
     noisy.position = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
-    noisy.velocity = Eigen::Vector3f(5.0f, 0.0f, 0.0f); // high speed -> low stability
-    noisy.confidence = 0.4f;
+    noisy.velocity = Eigen::Vector3f(8.0f, 0.0f, 0.0f); // high speed -> low stability
+    noisy.confidence = 0.25f;
+    noisy.covariance_trace = 80.0f;
 
     bus.publish(noisy);
 
@@ -126,6 +130,10 @@ TEST_CASE("TrajectorySolver reports unstable solutions below threshold", "[Traje
     bus.stop();
 
     REQUIRE(delivered);
+    const float expectedSpeedScore = 1.0f / (1.0f + 0.2f * noisy.velocity.norm());
+    const float expectedCovScore = 1.0f / (1.0f + 0.05f * noisy.covariance_trace);
+    const float expectedLowStability = 0.5f * noisy.confidence + 0.3f * expectedCovScore + 0.2f * expectedSpeedScore;
+    REQUIRE(received.stability_score == Approx(expectedLowStability));
     REQUIRE_FALSE(received.is_stable);
     REQUIRE(received.stability_score < cfg.stabilityThreshold);
 }

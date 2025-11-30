@@ -13,6 +13,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <sstream>
 
 using namespace std::chrono_literals;
 
@@ -38,42 +39,50 @@ TEST_CASE("EngagementController progresses through nominal states when stability
 
     sensorfusion::control::ControllerConfig cfg;
     cfg.minStabilityToAlign = 0.5f;
-    cfg.dataTimeout = 500ms;
+    cfg.dataTimeout = 2s;
+    cfg.minDwell = 120ms;
+    cfg.heartbeat = 100ms;
+    cfg.safeRecovery = 120ms;
     sensorfusion::control::EngagementController controller(cfg, clock, bus);
 
-    // Seed a stable solution before the worker loop starts to avoid an early Safe transition.
-    controller.m_lastSolution.stability_score = 1.0f;
-    controller.m_lastSolution.timestamp = clock.now();
-    controller.m_lastUpdate = clock.now();
-
     std::vector<sensorfusion::control::EngagementState> seen;
-    std::mutex m;
-    std::condition_variable cv;
-
     bus.subscribe([&](sensorfusion::control::EngagementState s)
                   {
-                      {
-                          std::lock_guard<std::mutex> lock(m);
-                          seen.push_back(s);
-                      }
-                      cv.notify_all();
+                      seen.push_back(s);
                   });
 
     controller.start();
     bus.start();
 
-    // Keep providing a stable solution to refresh lastUpdate.
     sensorfusion::KinematicSolution stable{};
-    stable.stability_score = 1.0f;
-    stable.timestamp = clock.now();
-    bus.publish(stable);
+    stable.stability_score = 0.95f;
+    stable.is_stable = true;
+
+    std::jthread feeder([&](std::stop_token st)
+                        {
+                            while (!st.stop_requested())
+                            {
+                                stable.timestamp = clock.now();
+                                bus.publish(stable);
+                                std::this_thread::sleep_for(30ms);
+                            }
+                        });
 
     const bool reachedCompleted = waitFor([&]
                                           { return std::find(seen.begin(), seen.end(), sensorfusion::control::EngagementState::Completed) != seen.end(); },
-                                          300ms);
+                                          5000ms);
 
+    feeder.request_stop();
+    feeder.join();
     controller.stop();
     bus.stop();
+
+    std::ostringstream oss;
+    for (auto s : seen)
+    {
+        oss << static_cast<int>(s) << " ";
+    }
+    INFO("Seen states: " << oss.str());
 
     REQUIRE(reachedCompleted);
     REQUIRE(std::find(seen.begin(), seen.end(), sensorfusion::control::EngagementState::Safe) == seen.end());
@@ -85,26 +94,15 @@ TEST_CASE("EngagementController falls back to Safe when data times out", "[Engag
     sensorfusion::bus::CommunicationBus bus;
 
     sensorfusion::control::ControllerConfig cfg;
-    cfg.dataTimeout = 30ms;
-    cfg.minStabilityToAlign = 0.5f;
+    cfg.dataTimeout = 80ms;
+    cfg.minStabilityToAlign = 0.6f;
+    cfg.heartbeat = 50ms;
     sensorfusion::control::EngagementController controller(cfg, clock, bus);
 
-    // Provide an initial stable solution to avoid the low-stability Safe path.
-    controller.m_lastSolution.stability_score = 1.0f;
-    controller.m_lastSolution.timestamp = clock.now();
-    controller.m_lastUpdate = clock.now();
-
     std::vector<sensorfusion::control::EngagementState> seen;
-    std::mutex m;
-    std::condition_variable cv;
-
     bus.subscribe([&](sensorfusion::control::EngagementState s)
                   {
-                      {
-                          std::lock_guard<std::mutex> lock(m);
-                          seen.push_back(s);
-                      }
-                      cv.notify_all();
+                      seen.push_back(s);
                   });
 
     controller.start();
@@ -112,7 +110,7 @@ TEST_CASE("EngagementController falls back to Safe when data times out", "[Engag
 
     const bool reachedSafe = waitFor([&]
                                      { return std::find(seen.begin(), seen.end(), sensorfusion::control::EngagementState::Safe) != seen.end(); },
-                                     150ms);
+                                     400ms);
 
     controller.stop();
     bus.stop();

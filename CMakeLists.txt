@@ -58,6 +58,7 @@ target_link_libraries(SensorManager
     PUBLIC
         VirtualTime
         CommunicationBus
+        TargetMotion
 )
 
 # -------------------------------------------------------
@@ -150,6 +151,26 @@ target_link_libraries(Visualization
         CommunicationBus
         EngagementController
 )
+
+# -------------------------------------------------------
+# TargetMotion module
+# -------------------------------------------------------
+add_library(TargetMotion
+    TargetMotion/src/TargetMotionGenerator.cpp
+)
+
+target_include_directories(TargetMotion
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/TargetMotion/include
+)
+
+target_link_libraries(TargetMotion
+    PUBLIC
+        VirtualTime
+        Eigen3::Eigen
+)
+
+target_compile_features(TargetMotion PUBLIC cxx_std_20)
 
 # -------------------------------------------------------
 target_compile_features(Visualization PUBLIC cxx_std_20)

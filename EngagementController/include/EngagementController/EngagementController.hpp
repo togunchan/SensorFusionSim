@@ -14,6 +14,9 @@ namespace sensorfusion::control
         float minStabilityToAlign = 0.8f;
         float minConfidenceToTrack = 0.5f;
         std::chrono::milliseconds dataTimeout{500};
+        std::chrono::milliseconds minDwell{700};
+        std::chrono::milliseconds heartbeat{200};
+        std::chrono::milliseconds safeRecovery{700};
     };
 
     class EngagementController
@@ -31,7 +34,8 @@ namespace sensorfusion::control
     private:
         void handleSolution(const KinematicSolution &sol);
         void workerLoop(std::stop_token st);
-        void transitionTo(EngagementState newState);
+        bool setState(EngagementState newState, time::VirtualClock::TimePoint now, bool forcePublish = false);
+        void publishLocked(EngagementState state, time::VirtualClock::TimePoint now);
 
         ControllerConfig m_config;
         time::VirtualClock &m_clock;
@@ -42,8 +46,12 @@ namespace sensorfusion::control
 
         mutable std::mutex m_mutex;
         EngagementState m_state{EngagementState::Idle};
+        EngagementState m_lastPublished{EngagementState::Idle};
+        bool m_hasSolution{false};
 
         KinematicSolution m_lastSolution{};
         std::chrono::steady_clock::time_point m_lastUpdate{};
+        std::chrono::steady_clock::time_point m_lastPublish{};
+        std::chrono::steady_clock::time_point m_stateEntered{};
     };
 } // namespace sensorfusion::control

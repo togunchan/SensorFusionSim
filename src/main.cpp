@@ -15,6 +15,13 @@ int main()
     time::VirtualClock clock;
     bus::CommunicationBus bus;
 
+    motion::MotionConfig motionCfg;
+    motionCfg.angularSpeedRadSec = 0.8f; // spiral angular speed
+    motionCfg.initialRadius = 80.0f;     // start far (meters)
+    motionCfg.radialShrinkRate = 0.7f;   // approach speed (m/s)
+    motionCfg.spiralStartTimeSec = 6.0f; // start spiralling after 6 sec
+    motionCfg.altitude = 25.0f;          // fixed altitude
+
     // Configs
     sensors::SensorConfig sensorCfg;
     sensorCfg.id = "imu";
@@ -31,12 +38,12 @@ int main()
 
     control::ControllerConfig ctrlCfg;
     ctrlCfg.minStabilityToAlign = 0.5f;
-    ctrlCfg.dataTimeout = std::chrono::milliseconds(300);
+    ctrlCfg.dataTimeout = std::chrono::milliseconds(500);
 
     // Modules
-    sensors::SensorManager sensorManager(clock, bus);
-    solver::TrajectorySolver solver(solverCfg, clock, bus);
+    sensors::SensorManager sensorManager(clock, bus, motionCfg);
     tracking::TargetTracker tracker(trackerCfg, clock, bus);
+    solver::TrajectorySolver solver(solverCfg, clock, bus);
     control::EngagementController controller(ctrlCfg, clock, bus);
 
     // Visualization pipeline
@@ -45,22 +52,19 @@ int main()
 
     sensorManager.addSensor(sensorCfg);
 
-    // Start
     bus.start();
     client.start();
     publisher.start();
     sensorManager.start();
-    solver.start();
     tracker.start();
+    solver.start();
     controller.start();
 
-    // Run the simulation for 15 seconds
     std::this_thread::sleep_for(std::chrono::seconds(15));
 
-    // Stop
     controller.stop();
-    tracker.stop();
     solver.stop();
+    tracker.stop();
     sensorManager.stop();
     publisher.stop();
     client.stop();

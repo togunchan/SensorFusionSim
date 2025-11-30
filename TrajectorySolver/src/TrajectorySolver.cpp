@@ -79,15 +79,17 @@ namespace sensorfusion::solver
         sol.elevation_offset = std::atan2(pos.z(), horizontal);
 
         // 3. Stability score
-        // Simple heuristic: high speed => lower stability.
-        float speed = vel.norm();
-        sol.stability_score = std::clamp(1.0f - speed * 0.1f, 0.0f, 1.0f);
+        float speed = vel.head<2>().norm();
+        const float speedScore = 1.0f / (1.0f + 0.2f * speed); // faster motion lowers stability
 
-        // Confidence acts as a multiplier: unreliable data => unstable solution.
-        sol.stability_score *= state.confidence;
+        // Confidence from tracker is primary; covariance_trace moderates certainty.
+        const float covTrace = state.covariance_trace;
+        const float covScore = 1.0f / (1.0f + 0.05f * covTrace);
+
+        sol.stability_score = std::clamp(0.5f * state.confidence + 0.3f * covScore + 0.2f * speedScore, 0.0f, 1.0f);
 
         // 4. Final stable/unstable decision
-        sol.is_stable = (sol.stability_score >= m_config.stabilityThreshold);
+        sol.is_stable = (sol.stability_score >= m_config.stabilityThreshold) && (state.confidence > 0.2f);
 
         return sol;
     }
@@ -114,9 +116,9 @@ namespace sensorfusion::solver
 
             if (hasTracker)
             {
-                KinematicSolution sol;
+                KinematicSolution sol = computeSolution(stateCopy, simTime);
                 {
-                    sol = computeSolution(m_lastTrackerState, simTime);
+                    std::lock_guard<std::mutex> lock(m_mutex);
                     m_lastSolution = sol;
                 }
                 m_bus.publish(sol);

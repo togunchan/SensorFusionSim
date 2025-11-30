@@ -1,10 +1,11 @@
 #include <SensorManager/SensorManager.hpp>
 #include <chrono>
 #include <random>
+#include <cmath>
 
 namespace sensorfusion::sensors
 {
-    SensorManager::SensorManager(time::VirtualClock &clock, bus::CommunicationBus &bus) : m_clock(clock), m_bus(bus) {}
+    SensorManager::SensorManager(time::VirtualClock &clock, bus::CommunicationBus &bus, const sensorfusion::motion::MotionConfig &motionCfg) : m_clock(clock), m_bus(bus), m_motion(motionCfg, clock) {}
 
     void SensorManager::start()
     {
@@ -40,31 +41,20 @@ namespace sensorfusion::sensors
 
     sensorfusion::SensorFrame SensorManager::generateFrame(const SensorConfig &config)
     {
-        // thread_local: Each thread gets its own independent copy of this variable.
-        // This ensures that in multithreaded programs, every thread has its own rng instance,
-        // avoiding race conditions and eliminating the need for synchronization mechanisms.
+        // thread_local: each thread gets its own rng instance to avoid contention
         static thread_local std::mt19937 rng{std::random_device{}()};
         std::normal_distribution<float> noise(0.0f, config.noiseSigma);
 
-        sensorfusion::SensorFrame frame;
+        sensorfusion::SensorFrame frame{};
         frame.timestamp = m_clock.now();
 
-        // Simple IMU model: device assumed stationary, small vibrations simulated with added noise
+        // Simple stationary model with optional Gaussian noise
         frame.imu_accel = Eigen::Vector3f(
-            0.0f + noise(rng), // X-axis: ideally 0, plus noise
-            0.0f + noise(rng), // Y-axis: ideally 0, plus noise
-            9.81f + noise(rng) // Z-axis: gravity (9.81 m/s^2) plus noise
-        );
-
-        // Gyroscope: ideally zero angular velocity when stationary,
-        // but random noise is added to simulate realistic sensor drift
-        frame.imu_gyro = Eigen::Vector3f(
             noise(rng),
             noise(rng),
-            noise(rng));
+            9.81f + noise(rng));
 
-        // Simple LIDAR model: fixed 10m distance measurement,
-        // with noise added to mimic real-world sensor variation
+        frame.imu_gyro = Eigen::Vector3f::Zero();
         frame.lidar_range = 10.0f + noise(rng);
         frame.dropout_flag = false;
         frame.spike_flag = false;
@@ -78,26 +68,33 @@ namespace sensorfusion::sensors
     {
         using namespace std::chrono_literals;
 
+        const auto tick = 1ms;
+
         while (!st.stop_requested())
         {
-            auto now = m_clock.now();
+            m_motion.update();
 
-            for (auto &[id, config] : m_sensors)
-            {
-                auto &nextTime = m_nextUpdate[id];
-                if (now >= nextTime)
-                {
-                    auto frame = generateFrame(config);
-                    frame.timestamp = now;
-                    m_bus.publish(frame);
+            SensorFrame f;
+            f.timestamp = m_clock.now();
 
-                    const auto interval = std::chrono::duration_cast<time::VirtualClock::Duration>(
-                        std::chrono::duration<double>(1.0 / config.updateRateHz));
-                    nextTime = now + interval;
-                }
-            }
-            std::this_thread::sleep_for(1ms);
-            m_clock.advance(1ms);
+            auto pos = m_motion.position();
+            f.lidar_range = std::hypot(pos.x(), pos.y());
+
+            auto acc = m_motion.acceleration();
+            acc.z() += 9.81f;
+            f.imu_accel = acc;
+
+            f.imu_gyro = Eigen::Vector3f(0.0f, 0.0f, m_motion.yawRate());
+
+            f.noise_sigma = 0.0f;
+            f.dropout_flag = false;
+            f.stuck_flag = false;
+            f.spike_flag = false;
+
+            m_bus.publish(f);
+
+            std::this_thread::sleep_for(tick);
+            m_clock.advance(tick);
         }
     }
 } // namespace sensorfusion::sensors

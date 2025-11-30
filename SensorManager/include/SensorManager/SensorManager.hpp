@@ -7,6 +7,7 @@
 #include <atomic>
 #include <CommunicationBus/CommunicationBus.hpp>
 #include <VirtualTime/VirtualClock.hpp>
+#include <TargetMotion/TargetMotionGenerator.hpp>
 
 namespace sensorfusion::sensors
 {
@@ -21,7 +22,7 @@ namespace sensorfusion::sensors
     class SensorManager
     {
     public:
-        SensorManager(time::VirtualClock &clock, bus::CommunicationBus &bus);
+        SensorManager(time::VirtualClock &clock, bus::CommunicationBus &bus, const sensorfusion::motion::MotionConfig &motionCfg);
 
         void start();
         void stop();
@@ -40,6 +41,7 @@ namespace sensorfusion::sensors
 
         std::unordered_map<std::string, SensorConfig> m_sensors;
         std::unordered_map<std::string, std::chrono::steady_clock::time_point> m_nextUpdate;
+        sensorfusion::motion::TargetMotionGenerator m_motion;
     };
 
 } // namespace sensorfusion::sensors

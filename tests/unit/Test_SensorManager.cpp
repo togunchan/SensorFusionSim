@@ -34,7 +34,8 @@ TEST_CASE("SensorManager generateFrame reflects clock and config", "[SensorManag
 {
     sensorfusion::time::VirtualClock clock;
     sensorfusion::bus::CommunicationBus bus;
-    sensorfusion::sensors::SensorManager manager(clock, bus);
+    sensorfusion::motion::MotionConfig motionCfg{};
+    sensorfusion::sensors::SensorManager manager(clock, bus, motionCfg);
 
     sensorfusion::sensors::SensorConfig cfg{};
     cfg.id = "imu";
@@ -55,7 +56,8 @@ TEST_CASE("SensorManager publishes frames at configured intervals", "[SensorMana
 {
     sensorfusion::time::VirtualClock clock;
     sensorfusion::bus::CommunicationBus bus;
-    sensorfusion::sensors::SensorManager manager(clock, bus);
+    sensorfusion::motion::MotionConfig motionCfg{};
+    sensorfusion::sensors::SensorManager manager(clock, bus, motionCfg);
 
     sensorfusion::sensors::SensorConfig cfg{};
     cfg.id = "fast";
