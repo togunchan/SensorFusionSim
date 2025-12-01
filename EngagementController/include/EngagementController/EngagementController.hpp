@@ -19,6 +19,8 @@ namespace sensorfusion::control
         std::chrono::milliseconds safeRecovery{700};
     };
 
+    // Finite state machine that advances through engagement phases based on solution stability,
+    // dwell timers, and data freshness; falls back to Safe and can recover after a cooldown.
     class EngagementController
     {
     public:

@@ -14,6 +14,9 @@ namespace sensorfusion::motion
         float altitude = 1.5f;           // meters, constant Z
     };
 
+    // Generates a 2D orbit that transitions into a spiral-in trajectory using the shared
+    // VirtualClock time base. Outputs position/velocity/acceleration for use by synthetic
+    // sensors and downstream fusion.
     class TargetMotionGenerator
     {
     public:

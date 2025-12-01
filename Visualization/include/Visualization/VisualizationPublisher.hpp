@@ -8,6 +8,8 @@
 
 namespace sensorfusion::viz
 {
+    // Bridges internal messages to the plotting client: subscribes on the CommunicationBus and
+    // serializes key fields to JSON lines understood by liveplot_server.py.
     class VisualizationPublisher
     {
     public:

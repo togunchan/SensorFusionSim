@@ -15,6 +15,8 @@ namespace sensorfusion::tracking
         float maxUpdateInterval = 200.0f; // milliseconds
     };
 
+    // 2D constant-velocity Kalman filter that fuses LiDAR range (converted to XY using gyro
+    // heading) with IMU acceleration. Publishes planar position/velocity plus a confidence metric.
     class TargetTracker
     {
     public:

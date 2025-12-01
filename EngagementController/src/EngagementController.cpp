@@ -132,6 +132,7 @@ namespace sensorfusion::control
 
             if (stale)
             {
+                // If solutions stop arriving, immediately fall back to Safe.
                 published = setState(EngagementState::Safe, now, current != EngagementState::Safe);
                 current = EngagementState::Safe;
                 lastPublish = published ? now : lastPublish;
@@ -140,6 +141,7 @@ namespace sensorfusion::control
             {
                 if (sol.stability_score < 0.02f)
                 {
+                    // Extreme instability triggers Safe regardless of dwell.
                     published = setState(EngagementState::Safe, now, current != EngagementState::Safe);
                     current = EngagementState::Safe;
                     lastPublish = published ? now : lastPublish;
@@ -148,6 +150,7 @@ namespace sensorfusion::control
                 {
                     auto meets = [&](float factor)
                     {
+                        // Each stage tightens the stability requirement by scaling the base threshold.
                         return sol.stability_score >= m_config.minStabilityToAlign * factor;
                     };
 
@@ -163,6 +166,7 @@ namespace sensorfusion::control
                             next = EngagementState::Tracking;
                         break;
                     case EngagementState::Tracking:
+                        // Require longer dwell before Aligning to avoid oscillations.
                         if ((now - stateEntered) >= dwellFor(EngagementState::Tracking) && meets(0.7f))
                             next = EngagementState::Aligning;
                         break;
@@ -179,6 +183,7 @@ namespace sensorfusion::control
                             next = EngagementState::Completed;
                         break;
                     case EngagementState::Safe:
+                        // After a cooldown, re-enter the pipeline if stability recovers and the solver agrees.
                         if ((now - stateEntered) >= m_config.safeRecovery && meets(0.6f) && sol.is_stable)
                             next = EngagementState::Acquiring;
                         break;
@@ -197,6 +202,7 @@ namespace sensorfusion::control
 
             if (!published && (now - lastPublish) >= heartbeatInterval)
             {
+                // Heartbeat re-publishes the current state to visualization even if it has not changed.
                 if (setState(current, now, true))
                 {
                     lastPublish = now;

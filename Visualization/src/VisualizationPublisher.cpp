@@ -32,21 +32,25 @@ namespace sensorfusion::viz
 
     void VisualizationPublisher::handleSensorFrame(const sensorfusion::SensorFrame &f)
     {
+        // Sends IMU accel/gyro and LiDAR range as a "sensor" JSON payload.
         m_client.send(JsonSerializer::toJson(f));
     }
 
     void VisualizationPublisher::handleTrackerState(const sensorfusion::TrackerState &s)
     {
+        // Publishes position/velocity/confidence as "tracker" for plotting confidence over time.
         m_client.send(JsonSerializer::toJson(s));
     }
 
     void VisualizationPublisher::handleKinematicSolution(const sensorfusion::KinematicSolution &k)
     {
+        // Sends azimuth/elevation/stability fields as "solution".
         m_client.send(JsonSerializer::toJson(k));
     }
 
     void VisualizationPublisher::handleEngagementState(sensorfusion::control::EngagementState st)
     {
+        // Encodes the FSM state as an integer for the step-plot in the Python visualizer.
         m_client.send(JsonSerializer::toJson(st));
     }
 

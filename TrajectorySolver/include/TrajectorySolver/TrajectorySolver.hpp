@@ -15,6 +15,8 @@ namespace sensorfusion::solver
         float stabilityThreshold = 0.8f;
     };
 
+    // Converts tracker position/velocity/confidence into pointing angles and a stability score,
+    // then publishes a KinematicSolution for downstream control and visualization.
     class TrajectorySolver
     {
     public:

@@ -34,6 +34,8 @@ namespace sensorfusion::motion
             if (R < 0.0)
                 R = 0.0;
 
+            // During the spiral the radial distance shrinks at a constant speed,
+            // so its derivative is a constant negative radialShrinkRate.
             dRdt = -static_cast<double>(m_cfg.radialShrinkRate);
         }
 
@@ -69,6 +71,7 @@ namespace sensorfusion::motion
         // ax ≈ -R * omega^2 * cos(theta)
         // ay ≈ -R * omega^2 * sin(theta)
         // az = 0
+        // The centripetal term dominates; radial acceleration from dR/dt is ignored for clarity.
         const double ax = -R * omega * omega * c;
         const double ay = -R * omega * omega * s;
         const double az = 0.0;

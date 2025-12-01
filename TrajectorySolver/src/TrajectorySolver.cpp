@@ -80,12 +80,15 @@ namespace sensorfusion::solver
 
         // 3. Stability score
         float speed = vel.head<2>().norm();
-        const float speedScore = 1.0f / (1.0f + 0.2f * speed); // faster motion lowers stability
+        // Faster lateral motion lowers stability because pointing lags at high angular rates.
+        const float speedScore = 1.0f / (1.0f + 0.2f * speed);
 
         // Confidence from tracker is primary; covariance_trace moderates certainty.
         const float covTrace = state.covariance_trace;
+        // Large covariance trace indicates high total uncertainty; the 0.05 factor scales it to ~O(1).
         const float covScore = 1.0f / (1.0f + 0.05f * covTrace);
 
+        // Weighted blend: 50% tracker confidence, 30% covariance moderation, 20% speed damping.
         sol.stability_score = std::clamp(0.5f * state.confidence + 0.3f * covScore + 0.2f * speedScore, 0.0f, 1.0f);
 
         // 4. Final stable/unstable decision

@@ -19,6 +19,8 @@ namespace sensorfusion::sensors
         float noiseSigma = 0.01f;
     };
 
+    // Simulates a set of IMU/LiDAR sensors driven by the TargetMotionGenerator and publishes
+    // synthetic SensorFrame messages onto the CommunicationBus.
     class SensorManager
     {
     public:

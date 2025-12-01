@@ -64,6 +64,7 @@ namespace sensorfusion::tracking
         if (dtHeading < 0.0f)
             dtHeading = 0.0f;
 
+        // Heading is the integral of gyro.z; kept in [-pi, pi] to avoid drift in atan2 later.
         m_theta += frame.imu_gyro.z() * dtHeading;
         m_hasHeading = true;
         constexpr float pi = 3.14159265358979323846f;
@@ -116,12 +117,14 @@ namespace sensorfusion::tracking
                 F(0, 2) = dtPredict;
                 F(1, 3) = dtPredict;
 
+                // Constant-velocity kinematics with acceleration input mapped via B.
                 Eigen::Matrix<float, 4, 2> B;
                 B << 0.5f * dtPredict * dtPredict, 0.0f,
                     0.0f, 0.5f * dtPredict * dtPredict,
                     dtPredict, 0.0f,
                     0.0f, dtPredict;
 
+                // Process noise from uncertain acceleration; diagonal for simplicity.
                 Eigen::Matrix4f Q = Eigen::Matrix4f::Zero();
                 const float qVar = accelNoise * accelNoise;
                 Q(0, 0) = 0.25f * dtPredict * dtPredict * dtPredict * dtPredict * qVar;
@@ -144,6 +147,7 @@ namespace sensorfusion::tracking
                 const float range = frame.lidar_range;
                 const float measX = range * std::cos(m_theta);
                 const float measY = range * std::sin(m_theta);
+                // LiDAR provides only radial distance; heading converts it to planar Cartesian.
                 Eigen::Vector2f z(measX, measY);
 
                 Eigen::Matrix<float, 2, 4> H;
@@ -171,11 +175,13 @@ namespace sensorfusion::tracking
             const float uncertaintyScore = 1.0f / (1.0f + 0.5f * (posVar + 0.2f * velVar));
 
             const float innovationScale = std::sqrt(std::max(1e-6f, S.trace()));
+            // Residual magnitude shrinks confidence if it exceeds the expected innovation scale.
             const float innovationScore = std::exp(-innovation.norm() / (innovationScale + 1e-3f));
 
             const float ageSec = std::chrono::duration<float>(now - m_lastUpdate).count();
             const float ageScore = std::exp(-ageSec / 1.5f);
 
+            // Blend innovation/uncertainty/recency, then smooth with previous confidence.
             const float blended = 0.4f * innovationScore + 0.4f * uncertaintyScore + 0.2f * ageScore;
             m_confidence = std::clamp(0.5f * m_confidence + 0.5f * blended, 0.05f, 0.98f);
 

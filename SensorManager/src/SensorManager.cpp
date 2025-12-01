@@ -45,6 +45,8 @@ namespace sensorfusion::sensors
         static thread_local std::mt19937 rng{std::random_device{}()};
         std::normal_distribution<float> noise(0.0f, config.noiseSigma);
 
+        // This path builds a purely noisy stationary frame (used by tests); the workerLoop
+        // uses the motion model for dynamic frames.
         sensorfusion::SensorFrame frame{};
         frame.timestamp = m_clock.now();
 
@@ -77,13 +79,16 @@ namespace sensorfusion::sensors
             SensorFrame f;
             f.timestamp = m_clock.now();
 
+            // Range is distance in the XY plane to the virtual target (top-down LiDAR).
             auto pos = m_motion.position();
             f.lidar_range = std::hypot(pos.x(), pos.y());
 
             auto acc = m_motion.acceleration();
+            // IMU accelerometer measures specific force; add gravity to the model output.
             acc.z() += 9.81f;
             f.imu_accel = acc;
 
+            // Only yaw rotation is modeled; pitch/roll are omitted in this simplified scene.
             f.imu_gyro = Eigen::Vector3f(0.0f, 0.0f, m_motion.yawRate());
 
             f.noise_sigma = 0.0f;
